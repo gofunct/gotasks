@@ -1,4 +1,4 @@
-package conntrack_test
+package testutils_test
 
 import (
 	"fmt"
