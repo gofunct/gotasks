@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
-	"golang.org/x/time/rate"
 	"strings"
 	"context"
 	"net"
@@ -52,16 +51,6 @@ func DebugLoggingInterceptor() grpc.UnaryServerInterceptor {
 		resp, err := handler(ctx, req)
 		fmt.Println(info, "response", resp, "err", err)
 		return resp, err
-	}
-}
-
-func RateLimitingServerInterceptor(r rate.Limit, txn int) grpc.UnaryServerInterceptor {
-	limiter := rate.NewLimiter(r, txn)
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if err := limiter.Wait(ctx); err != nil {
-			return nil, status.Error(codes.Canceled, "context exceeded")
-		}
-		return handler(ctx, req)
 	}
 }
 
