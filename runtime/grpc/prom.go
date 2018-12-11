@@ -1,4 +1,4 @@
-package prometheus
+package grpc
 
 import (
 	"net"

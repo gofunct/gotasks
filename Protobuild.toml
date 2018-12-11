@@ -39,5 +39,5 @@ plugins = ["grpc", "protoc-gen-grpc-gateway", "protoc-gen-swagger"]
   "google/protobuf/wrappers.proto" = "github.com/gogo/protobuf/types"
 
 [[descriptors]]
-prefix = "github.com/gofunct/todo-grpc/api"
+prefix = "github.com/gofunct/todo/api"
 target = "api/api.pb.txt"

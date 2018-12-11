@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc"
 	"mime"
 	"net/http"
-	"github.com/gofunct/service/gateway/swagger/data"
+	"github.com/gofunct/service/runtime/gateway/data"
 	"context"
 	"github.com/spf13/viper"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"

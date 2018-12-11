@@ -1,4 +1,4 @@
-package tracing
+package grpc
 
 import (
 	"github.com/opentracing/opentracing-go"

@@ -1,11 +1,11 @@
-package logging
+package grpc
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"google.golang.org/grpc/grpclog"
 	"github.com/spf13/viper"
 	zapjaeger "github.com/uber/jaeger-client-go/log/zap"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/grpclog"
 )
 
 func Log() *Logger {
@@ -15,7 +15,7 @@ func Log() *Logger {
 	}
 
 	zgl := &Logger{
-		Zap:  logger.With(zap.String("name", viper.GetString("name")), zap.Bool("grpc_log", true)),
+		Zap:  logger.With(zap.String("name", "goservice"), zap.Bool("grpc_log", true)),
 		JZap: zapjaeger.NewLogger(logger),
 	}
 	grpclog.SetLogger(zgl)

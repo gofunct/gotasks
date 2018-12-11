@@ -3,8 +3,6 @@ package grpc
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/gofunct/service/grpc/logging"
-	"github.com/gofunct/service/grpc/tracing"
 	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -17,8 +15,7 @@ import (
 
 	"github.com/go-pg/pg"
 	api "github.com/gofunct/service/api/todo/v1"
-	"github.com/gofunct/service/grpc/prometheus"
-	"github.com/gofunct/service/services/todo"
+	"github.com/gofunct/service/api/todo/services/todo"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -35,12 +32,13 @@ import (
 )
 
 var (
-	log *logging.Logger
+	log *Logger
 )
 
 func init() {
-	log = logging.Log()
+	log = Log()
 }
+
 // Panic handler prints the stack trace when recovering from a panic.
 var panicHandler = grpc_recovery.RecoveryHandlerFunc(func(p interface{}) error {
 	buf := make([]byte, 1<<16)
@@ -54,7 +52,7 @@ func Start() {
 	if err != nil {
 		log.FatalViper("Failed to listen:", "grpc_port")
 	}
-	tracer, closer, err := tracing.Serve(log.JZap)
+	tracer, closer, err := Serve(log.JZap)
 	if err != nil {
 		log.Zap.Fatal("Cannot initialize Jaeger Tracer %s", zap.Error(err))
 	}
@@ -72,7 +70,7 @@ func Start() {
 	)})
 
 	go NewMux(viper.GetString("grpc_debug_port"))
-	go server.Serve(lis)
+	server.Serve(lis)
 }
 
 func NewMux(port string) {
@@ -105,7 +103,7 @@ func NewDB(user, pw, name, host, port string) *pg.DB {
 }
 
 func NewServer(tracer opentracing.Tracer) *grpc.Server {
-	interceptor := prometheus.NewMetricsIntercept()
+	interceptor := NewMetricsIntercept()
 	grpc_zap.ReplaceGrpcLogger(zap.L())
 	zopts := []grpc_zap.Option{
 		grpc_zap.WithDurationField(func(duration time.Duration) zapcore.Field {
@@ -133,7 +131,7 @@ func NewServer(tracer opentracing.Tracer) *grpc.Server {
 
 	grpc_health_v1.RegisterHealthServer(s, health.NewServer())
 	grpc_prometheus.Register(s)
-	prometheus.RegisterMetricsIntercept(s, interceptor)
+	RegisterMetricsIntercept(s, interceptor)
 	return s
 }
 
