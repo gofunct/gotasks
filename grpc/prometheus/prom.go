@@ -1,4 +1,4 @@
-package service
+package prometheus
 
 import (
 	"net"
@@ -14,18 +14,21 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
-// ServiceInfoProvider is simple wrapper around GetServiceInfo method.
-// This interface is implemented by grpc Server.
-type ServiceInfoProvider interface {
-	// GetServiceInfo returns a map from service names to ServiceInfo.
-	// Service names include the package names, in the form of <package>.<service>.
-	GetServiceInfo() map[string]grpc.ServiceInfo
+// MetricsIntercept ...
+type MetricsIntercept struct {
+	monitoring *monitoring
+	trackPeers bool
 }
 
-// RegisterInterceptor preallocates possible dimensions of every metric.
-// If peer tracking is enabled, nothing will happen.
-// If you register interceptor very frequently (for example during tests) it can allocate huge amount of memory.
-func RegisterInterceptor(s ServiceInfoProvider, i *Interceptor) (err error) {
+// NewMetricsIntercept implements both prometheus Collector interface and methods required by grpc MetricsIntercept.
+func NewMetricsIntercept() *MetricsIntercept {
+	return &MetricsIntercept{
+		monitoring: initMonitoring(true),
+		trackPeers: true,
+	}
+}
+
+func RegisterMetricsIntercept(s *grpc.Server, i *MetricsIntercept) (err error) {
 	if i.trackPeers {
 		return nil
 	}
@@ -73,31 +76,8 @@ func RegisterInterceptor(s ServiceInfoProvider, i *Interceptor) (err error) {
 	return nil
 }
 
-// Interceptor ...
-type Interceptor struct {
-	monitoring *monitoring
-	trackPeers bool
-}
-
-// InterceptorOpts ...
-type InterceptorOpts struct {
-	// TrackPeers allow to turn on peer tracking.
-	// For more info about peers please visit https://godoc.org/google.golang.org/grpc/peer.
-	// peer is not bounded dimension so it can cause performance loss.
-	// If its turn on Interceptor will not init metrics on startup.
-	TrackPeers bool
-}
-
-// NewInterceptor implements both prometheus Collector interface and methods required by grpc Interceptor.
-func NewInterceptor(opts InterceptorOpts) *Interceptor {
-	return &Interceptor{
-		monitoring: initMonitoring(opts.TrackPeers),
-		trackPeers: opts.TrackPeers,
-	}
-}
-
 // Dialer ...
-func (i *Interceptor) Dialer(f func(string, time.Duration) (net.Conn, error)) func(string, time.Duration) (net.Conn, error) {
+func (i *MetricsIntercept) Dialer(f func(string, time.Duration) (net.Conn, error)) func(string, time.Duration) (net.Conn, error) {
 	return func(addr string, timeout time.Duration) (net.Conn, error) {
 		i.monitoring.dialer.WithLabelValues(addr).Inc()
 		return f(addr, timeout)
@@ -105,7 +85,7 @@ func (i *Interceptor) Dialer(f func(string, time.Duration) (net.Conn, error)) fu
 }
 
 // UnaryClient ...
-func (i *Interceptor) UnaryClient() grpc.UnaryClientInterceptor {
+func (i *MetricsIntercept) UnaryClient() grpc.UnaryClientInterceptor {
 	monitor := i.monitoring.client
 
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
@@ -132,7 +112,7 @@ func (i *Interceptor) UnaryClient() grpc.UnaryClientInterceptor {
 }
 
 // StreamClient ...
-func (i *Interceptor) StreamClient() grpc.StreamClientInterceptor {
+func (i *MetricsIntercept) StreamClient() grpc.StreamClientInterceptor {
 	monitor := i.monitoring.client
 
 	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
@@ -162,7 +142,7 @@ func (i *Interceptor) StreamClient() grpc.StreamClientInterceptor {
 }
 
 // UnaryServer ...
-func (i *Interceptor) UnaryServer() grpc.UnaryServerInterceptor {
+func (i *MetricsIntercept) UnaryServer() grpc.UnaryServerInterceptor {
 	monitor := i.monitoring.server
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -193,7 +173,7 @@ func (i *Interceptor) UnaryServer() grpc.UnaryServerInterceptor {
 }
 
 // StreamServer ...
-func (i *Interceptor) StreamServer() grpc.StreamServerInterceptor {
+func (i *MetricsIntercept) StreamServer() grpc.StreamServerInterceptor {
 	monitor := i.monitoring.server
 
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
@@ -240,14 +220,14 @@ func (i *Interceptor) StreamServer() grpc.StreamServerInterceptor {
 }
 
 // Describe implements prometheus Collector interface.
-func (i *Interceptor) Describe(in chan<- *prometheus.Desc) {
+func (i *MetricsIntercept) Describe(in chan<- *prometheus.Desc) {
 	i.monitoring.dialer.Describe(in)
 	i.monitoring.server.Describe(in)
 	i.monitoring.client.Describe(in)
 }
 
 // Collect implements prometheus Collector interface.
-func (i *Interceptor) Collect(in chan<- prometheus.Metric) {
+func (i *MetricsIntercept) Collect(in chan<- prometheus.Metric) {
 	i.monitoring.dialer.Collect(in)
 	i.monitoring.server.Collect(in)
 	i.monitoring.client.Collect(in)
@@ -261,7 +241,7 @@ var (
 )
 
 // TagRPC implements stats Handler interface.
-func (i *Interceptor) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
+func (i *MetricsIntercept) TagRPC(ctx context.Context, info *stats.RPCTagInfo) context.Context {
 	service, method := split(info.FullMethodName)
 
 	return context.WithValue(ctx, tagRPCKey, prometheus.Labels{
@@ -272,7 +252,7 @@ func (i *Interceptor) TagRPC(ctx context.Context, info *stats.RPCTagInfo) contex
 }
 
 // HandleRPC implements stats Handler interface.
-func (i *Interceptor) HandleRPC(ctx context.Context, stat stats.RPCStats) {
+func (i *MetricsIntercept) HandleRPC(ctx context.Context, stat stats.RPCStats) {
 	lab, _ := ctx.Value(tagRPCKey).(prometheus.Labels)
 
 	switch in := stat.(type) {
@@ -292,7 +272,7 @@ func (i *Interceptor) HandleRPC(ctx context.Context, stat stats.RPCStats) {
 }
 
 // TagConn implements stats Handler interface.
-func (i *Interceptor) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
+func (i *MetricsIntercept) TagConn(ctx context.Context, info *stats.ConnTagInfo) context.Context {
 	return context.WithValue(ctx, tagConnKey, prometheus.Labels{
 		"remote_addr": info.RemoteAddr.String(),
 		"local_addr":  info.LocalAddr.String(),
@@ -300,7 +280,7 @@ func (i *Interceptor) TagConn(ctx context.Context, info *stats.ConnTagInfo) cont
 }
 
 // HandleConn implements stats Handler interface.
-func (i *Interceptor) HandleConn(ctx context.Context, stat stats.ConnStats) {
+func (i *MetricsIntercept) HandleConn(ctx context.Context, stat stats.ConnStats) {
 	lab, _ := ctx.Value(tagConnKey).(prometheus.Labels)
 
 	switch in := stat.(type) {

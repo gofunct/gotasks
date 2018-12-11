@@ -1,10 +1,10 @@
-package service
+package flags
 
 import (
 	"github.com/urfave/cli"
 )
 
-var commonFlags = []cli.Flag{
+var ServiceFlags = []cli.Flag{
 	cli.StringFlag{
 		Name:   "bind-http",
 		Usage:  "bind address for HTTP",
