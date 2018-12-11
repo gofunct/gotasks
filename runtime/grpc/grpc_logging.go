@@ -1,4 +1,4 @@
-package runtime
+package grpc
 
 import (
 	"fmt"
@@ -6,6 +6,10 @@ import (
 	zapjaeger "github.com/uber/jaeger-client-go/log/zap"
 	"go.uber.org/zap"
 	"google.golang.org/grpc/grpclog"
+)
+
+var (
+	log = Log()
 )
 
 func Log() *Logger {

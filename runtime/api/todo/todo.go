@@ -3,8 +3,8 @@ package todo
 import (
 	"context"
 
-	"github.com/gofunct/service/api/todo/v1"
 	"github.com/go-pg/pg"
+	"github.com/gofunct/service/runtime/api/todo/v1"
 	"github.com/gogo/protobuf/types"
 	"github.com/satori/go.uuid"
 	"google.golang.org/grpc"

@@ -1,37 +1,36 @@
-package runtime
+package grpc
 
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/opentracing/opentracing-go"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"net/http"
-	"net/http/pprof"
-	"runtime"
-	"strings"
-	"time"
-
 	"github.com/go-pg/pg"
-	api "github.com/gofunct/service/api/todo/v1"
+	api "github.com/gofunct/service/runtime/api/todo/v1"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tags"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+	"net/http"
+	"net/http/pprof"
+	stack "runtime"
+	"strings"
+	"time"
 )
 
 // Panic handler prints the stack trace when recovering from a panic.
 var panicHandler = grpc_recovery.RecoveryHandlerFunc(func(p interface{}) error {
 	buf := make([]byte, 1<<16)
-	runtime.Stack(buf, true)
+	stack.Stack(buf, true)
 	log.Zap.Error("recovery-handler", zap.String("panic recovered: ", string(buf)))
 	return status.Errorf(codes.Internal, "%s", p)
 })

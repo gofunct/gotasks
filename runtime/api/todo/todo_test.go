@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	api "github.com/gofunct/service/api/todo/v1"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
+	api "github.com/gofunct/service/runtime/api/todo/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -19,9 +19,9 @@ type TodoSuite struct {
 
 func TestTodoTestSuite(t *testing.T) {
 	db := pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "todo",
-		Addr:     "localhost:5432",
+		User:                  "postgres",
+		Database:              "todo",
+		Addr:                  "localhost:5432",
 		RetryStatementTimeout: true,
 		MaxRetries:            4,
 		MinRetryBackoff:       250 * time.Millisecond,
