@@ -1,4 +1,4 @@
-package grpc
+package runtime
 
 import (
 	"net"

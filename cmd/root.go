@@ -17,26 +17,21 @@ package cmd
 import (
 	"fmt"
 	"github.com/gofunct/service/runtime"
-	"github.com/gofunct/service/runtime/grpc"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	root = *runtime.Root
-	log *grpc.Logger
+	log = runtime.Log()
 )
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-		Use:     "goservice",
-		Short:   "just a simple grpc tool for golang microservices",
-		Long:    "",
-		Example: "",
-		Version: "0.1",
-	}
-
+	Use:     "goservice",
+	Short:   "a golang utility to help create grpc microservices",
+	Version: runtime.VString("0.1"),
+}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the RootCmd.
@@ -48,12 +43,6 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().StringVarP(&runtime.CfgFile, "file", "f", "", "config file")
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	runtime.Initialize()
-	log = grpc.Log()
 }
-
-
-
-

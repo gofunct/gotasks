@@ -1,4 +1,4 @@
-package grpc
+package runtime
 
 import (
 	"crypto/tls"
@@ -6,7 +6,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"runtime"
@@ -15,7 +14,6 @@ import (
 
 	"github.com/go-pg/pg"
 	api "github.com/gofunct/service/api/todo/v1"
-	"github.com/gofunct/service/api/todo/services/todo"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -23,21 +21,12 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 )
-
-var (
-	log *Logger
-)
-
-func init() {
-	log = Log()
-}
 
 // Panic handler prints the stack trace when recovering from a panic.
 var panicHandler = grpc_recovery.RecoveryHandlerFunc(func(p interface{}) error {
@@ -47,34 +36,7 @@ var panicHandler = grpc_recovery.RecoveryHandlerFunc(func(p interface{}) error {
 	return status.Errorf(codes.Internal, "%s", p)
 })
 
-func Start() {
-	lis, err := net.Listen("tcp", viper.GetString("grpc_port"))
-	if err != nil {
-		log.FatalViper("Failed to listen:", "grpc_port")
-	}
-	tracer, closer, err := Serve(log.JZap)
-	if err != nil {
-		log.Zap.Fatal("Cannot initialize Jaeger Tracer %s", zap.Error(err))
-	}
-	defer closer.Close()
-
-	// Set GRPC Interceptors
-	server := NewServer(tracer)
-
-	api.RegisterTodoServiceServer(server, &todo.Service{DB: NewDB(
-		viper.GetString("db_user"),
-		viper.GetString("db_pass"),
-		viper.GetString("db_name"),
-		viper.GetString("db_host"),
-		viper.GetString("db_port"),
-	)})
-
-	go NewMux(viper.GetString("grpc_debug_port"))
-	server.Serve(lis)
-}
-
-func NewMux(port string) {
-	log.Zap.Debug("Starting gateway service..")
+func NewMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
@@ -82,16 +44,16 @@ func NewMux(port string) {
 	mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
 	mux.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
 	mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
-	http.ListenAndServe(port, mux)
+
+	return mux
 }
 
-func NewDB(user, pw, name, host, port string) *pg.DB {
-	// Connect to PostgresQL
+func NewDB() *pg.DB {
 	db := pg.Connect(&pg.Options{
-		User:                  user,
-		Password:              pw,
-		Database:              name,
-		Addr:                  host + ":" + port,
+		User:                  VString("db_user"),
+		Password:              VString("db_pass"),
+		Database:              VString("db_name"),
+		Addr:                  VString("db_host") + VString("db_port"),
 		RetryStatementTimeout: true,
 		MaxRetries:            4,
 		MinRetryBackoff:       250 * time.Millisecond,
@@ -135,7 +97,6 @@ func NewServer(tracer opentracing.Tracer) *grpc.Server {
 	return s
 }
 
-
 func GrpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ProtoMajor == 2 && strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
@@ -148,15 +109,15 @@ func GrpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 
 func RegisterCertificates(cert, key string) (*tls.Certificate, *x509.CertPool) {
 	var err error
-		pair, err := tls.X509KeyPair([]byte(cert), []byte(key))
-		if err != nil {
-			panic(err)
-		}
+	pair, err := tls.X509KeyPair([]byte(cert), []byte(key))
+	if err != nil {
+		panic(err)
+	}
 
-		pool := x509.NewCertPool()
-		ok := pool.AppendCertsFromPEM([]byte(cert))
-		if !ok {
-			panic("bad certs")
-		}
-		return &pair, pool
+	pool := x509.NewCertPool()
+	ok := pool.AppendCertsFromPEM([]byte(cert))
+	if !ok {
+		panic("bad certs")
+	}
+	return &pair, pool
 }

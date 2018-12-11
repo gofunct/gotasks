@@ -1,4 +1,4 @@
-package grpc
+package runtime
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ func Log() *Logger {
 }
 
 type Logger struct {
-	Zap *zap.Logger
+	Zap  *zap.Logger
 	JZap *zapjaeger.Logger
 }
 
@@ -70,4 +70,3 @@ func (l *Logger) FatalViper(message, key string, args ...interface{}) {
 func (l *Logger) DebugViper(message, key string, args ...interface{}) {
 	l.Zap.Debug(message, zap.String(key, viper.GetString(key)))
 }
-
