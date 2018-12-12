@@ -10,13 +10,13 @@ BINARIES=$(addprefix bin/,$(COMMANDS))
 COMMANDS=protoc-gen-gogotodo
 DESTDIR=/usr/local
 
-.PHONY: clean setup generate protos build lint test binaries install uninstall help
+.PHONY: clean setup generate protos build test binaries install uninstall help
 .DEFAULT: default
 
 setup: ## install dependencies
 	@go get -u github.com/stevvooe/protobuild
 	@go get -u github.com/favadi/protoc-go-inject-tag
-	@go get -d $(GRPC_GATEWAY)
+	@go get -d $(GRPC_GATEWAY)/...
 	@cd $(GOPATH)/src/$(GRPC_GATEWAY)/protoc-gen-grpc-gateway && go install
 	@cd $(GOPATH)/src/$(GRPC_GATEWAY)/protoc-gen-swagger && go install
 
