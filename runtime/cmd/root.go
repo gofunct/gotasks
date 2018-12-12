@@ -2,21 +2,18 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gofunct/service/runtime/grpc"
+	"github.com/gofunct/service/runtime/viper"
 	"os"
 
 	"github.com/spf13/cobra"
 )
 
-var (
-	log = grpc.Log()
-)
-
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:     "goservice",
-	Short:   "a golang utility to help create grpc microservices",
-	Version: "0.1",
+	Use:               "goservice",
+	Short:             "a golang utility to help create grpc microservices",
+	Version:           "0.1",
+	PersistentPreRunE: viper.Viperize(),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -28,4 +25,6 @@ func Execute() {
 	}
 }
 
-func init() { RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle") }
+func init() {
+	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}

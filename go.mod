@@ -29,6 +29,7 @@ require (
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.9.1
+	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
 	golang.org/x/net v0.0.0-20181207154023-610586996380
 	google.golang.org/genproto v0.0.0-20181202183823-bd91e49a0898
 	google.golang.org/grpc v1.17.0

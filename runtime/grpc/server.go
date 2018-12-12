@@ -4,7 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"github.com/go-pg/pg"
+	"github.com/gofunct/service/runtime/api/todo"
 	api "github.com/gofunct/service/runtime/api/todo/v1"
+	"github.com/gofunct/service/runtime/logging"
+	vi "github.com/gofunct/service/runtime/viper"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -13,6 +16,7 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -20,12 +24,41 @@ import (
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	stack "runtime"
 	"strings"
 	"time"
 )
+
+var log = logging.Log(true)
+
+func Serve() func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, args []string) {
+		lis, err := net.Listen("tcp", vi.VString("grpc_port"))
+		if err != nil {
+			log.Fatal("Failed to listen:"+vi.VString("grpc_port"), err)
+		}
+		tracer, closer, err := Trace(log.JZap)
+		if err != nil {
+			log.Fatal("Cannot initialize Jaeger Tracer %s", zap.Error(err))
+		}
+		defer closer.Close()
+
+		// Set GRPC Interceptors
+		server := NewServer(tracer)
+
+		api.RegisterTodoServiceServer(server, &todo.Service{DB: NewDB()})
+
+		mux := NewMux()
+		log.Zap.Debug("Starting debug service..", zap.String("grpc_debug_port", vi.VString("grpc_debug_port")))
+		go func() { http.ListenAndServe(vi.VString("grpc_debug_port"), mux) }()
+
+		log.Zap.Debug("Starting grpc service..", zap.String("grpc_port", vi.VString("grpc_port")))
+		server.Serve(lis)
+	}
+}
 
 // Panic handler prints the stack trace when recovering from a panic.
 var panicHandler = grpc_recovery.RecoveryHandlerFunc(func(p interface{}) error {
@@ -49,10 +82,10 @@ func NewMux() *http.ServeMux {
 
 func NewDB() *pg.DB {
 	db := pg.Connect(&pg.Options{
-		User:                  VString("db_user"),
-		Password:              VString("db_pass"),
-		Database:              VString("db_name"),
-		Addr:                  VString("db_host") + VString("db_port"),
+		User:                  vi.VString("db_user"),
+		Password:              vi.VString("db_pass"),
+		Database:              vi.VString("db_name"),
+		Addr:                  vi.VString("db_host") + vi.VString("db_port"),
 		RetryStatementTimeout: true,
 		MaxRetries:            4,
 		MinRetryBackoff:       250 * time.Millisecond,
