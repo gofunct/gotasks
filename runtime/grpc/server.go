@@ -4,10 +4,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"github.com/go-pg/pg"
-	"github.com/gofunct/service/runtime/api/todo"
-	api "github.com/gofunct/service/runtime/api/todo/v1"
-	"github.com/gofunct/service/runtime/logging"
-	vi "github.com/gofunct/service/runtime/viper"
+	"github.com/gofunct/gotasks/runtime/db"
+	api "github.com/gofunct/gotasks/api/todo/v1"
+	"github.com/gofunct/gotasks/runtime/logging"
+	vi "github.com/gofunct/gotasks/runtime/viper"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -49,7 +49,7 @@ func Serve() func(cmd *cobra.Command, args []string) {
 		// Set GRPC Interceptors
 		server := NewServer(tracer)
 
-		api.RegisterTodoServiceServer(server, &todo.Service{DB: NewDB()})
+		api.RegisterTodoServiceServer(server, &db.Store{DB: NewDB()})
 
 		mux := NewMux()
 		log.Zap.Debug("Starting debug service..", zap.String("grpc_debug_port", vi.VString("grpc_debug_port")))

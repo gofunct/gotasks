@@ -2,8 +2,8 @@ package gateway
 
 import (
 	"context"
-	mygrpc "github.com/gofunct/service/runtime/grpc"
-	vi "github.com/gofunct/service/runtime/viper"
+	mygrpc "github.com/gofunct/gotasks/runtime/grpc"
+	vi "github.com/gofunct/gotasks/runtime/viper"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	"github.com/grpc-ecosystem/go-grpc-middleware/tracing/opentracing"

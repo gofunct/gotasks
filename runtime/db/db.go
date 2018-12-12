@@ -1,24 +1,23 @@
-package todo
+package db
 
 import (
 	"context"
-
 	"github.com/go-pg/pg"
-	"github.com/gofunct/service/runtime/api/todo/v1"
+	"github.com/gofunct/gotasks/api/todo/v1"
 	"github.com/gogo/protobuf/types"
 	"github.com/satori/go.uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
 
-// Service is the service dealing with storing
+// Store is the service dealing with storing
 // and retrieving todo items from the database.
-type Service struct {
+type Store struct {
 	DB *pg.DB
 }
 
 // CreateTodo creates a todo given a description
-func (s Service) CreateTodo(ctx context.Context, req *todo.CreateTodoRequest) (*todo.CreateTodoResponse, error) {
+func (s Store) CreateTodo(ctx context.Context, req *todo.CreateTodoRequest) (*todo.CreateTodoResponse, error) {
 	req.Item.Id = uuid.NewV4().String()
 	err := s.DB.Insert(req.Item)
 	if err != nil {
@@ -28,7 +27,7 @@ func (s Service) CreateTodo(ctx context.Context, req *todo.CreateTodoRequest) (*
 }
 
 // CreateTodos create todo items from a list of todo descriptions
-func (s Service) CreateTodos(ctx context.Context, req *todo.CreateTodosRequest) (*todo.CreateTodosResponse, error) {
+func (s Store) CreateTodos(ctx context.Context, req *todo.CreateTodosRequest) (*todo.CreateTodosResponse, error) {
 	var ids []string
 	for _, item := range req.Items {
 		item.Id = uuid.NewV4().String()
@@ -42,7 +41,7 @@ func (s Service) CreateTodos(ctx context.Context, req *todo.CreateTodosRequest) 
 }
 
 // GetTodo retrieves a todo item from its ID
-func (s Service) GetTodo(ctx context.Context, req *todo.GetTodoRequest) (*todo.GetTodoResponse, error) {
+func (s Store) GetTodo(ctx context.Context, req *todo.GetTodoRequest) (*todo.GetTodoResponse, error) {
 	var item todo.Todo
 	err := s.DB.Model(&item).Where("id = ?", req.Id).First()
 	if err != nil {
@@ -52,7 +51,7 @@ func (s Service) GetTodo(ctx context.Context, req *todo.GetTodoRequest) (*todo.G
 }
 
 // ListTodo retrieves a todo item from its ID
-func (s Service) ListTodo(ctx context.Context, req *todo.ListTodoRequest) (*todo.ListTodoResponse, error) {
+func (s Store) ListTodo(ctx context.Context, req *todo.ListTodoRequest) (*todo.ListTodoResponse, error) {
 	var items []*todo.Todo
 	query := s.DB.Model(&items).Order("created_at ASC")
 	if req.Limit > 0 {
@@ -69,7 +68,7 @@ func (s Service) ListTodo(ctx context.Context, req *todo.ListTodoRequest) (*todo
 }
 
 // DeleteTodo deletes a todo given an ID
-func (s Service) DeleteTodo(ctx context.Context, req *todo.DeleteTodoRequest) (*todo.DeleteTodoResponse, error) {
+func (s Store) DeleteTodo(ctx context.Context, req *todo.DeleteTodoRequest) (*todo.DeleteTodoResponse, error) {
 	err := s.DB.Delete(&todo.Todo{Id: req.Id})
 	if err != nil {
 		return nil, grpc.Errorf(codes.Internal, "Could not delete item from the database: %s", err)
@@ -78,7 +77,7 @@ func (s Service) DeleteTodo(ctx context.Context, req *todo.DeleteTodoRequest) (*
 }
 
 // UpdateTodo updates a todo item
-func (s Service) UpdateTodo(ctx context.Context, req *todo.UpdateTodoRequest) (*todo.UpdateTodoResponse, error) {
+func (s Store) UpdateTodo(ctx context.Context, req *todo.UpdateTodoRequest) (*todo.UpdateTodoResponse, error) {
 	req.Item.UpdatedAt = types.TimestampNow()
 	res, err := s.DB.Model(req.Item).Column("title", "description", "completed", "updated_at").Update()
 	if res.RowsAffected() == 0 {
@@ -91,7 +90,7 @@ func (s Service) UpdateTodo(ctx context.Context, req *todo.UpdateTodoRequest) (*
 }
 
 // UpdateTodos updates todo items given their respective title and description.
-func (s Service) UpdateTodos(ctx context.Context, req *todo.UpdateTodosRequest) (*todo.UpdateTodosResponse, error) {
+func (s Store) UpdateTodos(ctx context.Context, req *todo.UpdateTodosRequest) (*todo.UpdateTodosResponse, error) {
 	time := types.TimestampNow()
 	for _, item := range req.Items {
 		item.UpdatedAt = time

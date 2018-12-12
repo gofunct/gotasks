@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/gofunct/service/runtime/gateway"
+	"github.com/gofunct/gotasks/runtime/gateway"
 
 	"github.com/spf13/cobra"
 )

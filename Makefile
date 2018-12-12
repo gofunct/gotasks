@@ -1,5 +1,5 @@
 ROOTDIR=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-PROJECT_ROOT=github.com/gofunct/service
+PROJECT_ROOT=github.com/gofunct/gotasks
 PB_FILES=$(shell find . -path '*.pb.go' | grep -v "vendor")
 PROTO_FILES=$(shell find . -path '*.proto' | grep -v "vendor")
 GOOGLE_APIS=github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis

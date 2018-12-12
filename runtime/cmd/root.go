@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gofunct/service/runtime/viper"
+	"github.com/gofunct/gotasks/runtime/viper"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -10,7 +10,7 @@ import (
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:               "goservice",
+	Use:               "gotasks",
 	Short:             "a golang utility to help create grpc microservices",
 	Version:           "0.1",
 	PersistentPreRunE: viper.Viperize(),

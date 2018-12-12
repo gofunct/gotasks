@@ -1,4 +1,4 @@
-package todo
+package db
 
 import (
 	"context"
@@ -7,14 +7,14 @@ import (
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
-	api "github.com/gofunct/service/runtime/api/todo/v1"
+	api "github.com/gofunct/gotasks/api/todo/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
 type TodoSuite struct {
 	suite.Suite
-	Todo *Service
+	Todo *Store
 }
 
 func TestTodoTestSuite(t *testing.T) {
@@ -27,7 +27,7 @@ func TestTodoTestSuite(t *testing.T) {
 		MinRetryBackoff:       250 * time.Millisecond,
 	})
 	suite.Run(t, &TodoSuite{
-		Todo: &Service{DB: db},
+		Todo: &Store{DB: db},
 	})
 }
 

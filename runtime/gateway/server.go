@@ -2,10 +2,10 @@ package gateway
 
 import (
 	"context"
-	api "github.com/gofunct/service/runtime/api/todo/v1"
-	"github.com/gofunct/service/runtime/gateway/data"
-	"github.com/gofunct/service/runtime/logging"
-	vi "github.com/gofunct/service/runtime/viper"
+	api "github.com/gofunct/gotasks/api/todo/v1"
+	"github.com/gofunct/gotasks/runtime/gateway/data"
+	"github.com/gofunct/gotasks/runtime/logging"
+	vi "github.com/gofunct/gotasks/runtime/viper"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/philips/go-bindata-assetfs"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
